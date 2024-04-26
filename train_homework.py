@@ -31,6 +31,8 @@ def get_loader(train_arg: dict, val_arg: dict, config, **kwargs) -> Tuple[DataLo
     final_nc = 23
     pack = HU.load_data(**config['utils_config'])
     x_train, y_train, x_test, y_test, _, weights = pack
+    if not torch.is_tensor(weights):
+        weights = torch.from_numpy(weights)
     print(y_train.shape)
     print(np.argwhere(y_train < 0))
     tds = TensorDataset(torch.from_numpy(x_train).float(),
@@ -55,15 +57,15 @@ def main(config):
             'pin_memory': True,
         }, config=config
     )
-    model = resnet50(num_classes=nc)
+    model = resnet50(num_classes=nc, proj=False)
     optimizer: Optimizer = AdamW(model.parameters(), lr=.1, weight_decay=5e-4)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2, eta_min=5e-9)
     # up: 26 epochs, down: 52
     scheduler = CyclicLR(optimizer, step_size_up=26, step_size_down=52, base_lr=1e-8, max_lr=.1, cycle_momentum=False)
-    lfn = [nn.CrossEntropyLoss(), nn.CosineEmbeddingLoss()]
-    model, optimizer, tloader, vloader, scheduler = accelerator.prepare(model, optimizer,
+    lfn = [nn.CrossEntropyLoss(weights), nn.CosineEmbeddingLoss()]
+    model, optimizer, tloader, vloader, scheduler, lfn[0] = accelerator.prepare(model, optimizer,
                                                                              tloader, vloader,
-                                                                             scheduler)
+                                                                             scheduler, lfn[0])
     lfn[0], lfn[1] = accelerator.prepare(*lfn)
     EPOCH = config['n_epoch']
     epoch_tot = len(tloader)
@@ -87,14 +89,6 @@ def main(config):
             torch.save(accelerator.unwrap_model(model), f'{accelerator.project_dir}/best.pth')
             loss_buf = vloss
     torch.save(accelerator.unwrap_model(model), f'{accelerator.project_dir}/last.pth')
-
-
-def random_noise(x, prob=.5):
-    # if 1 - torch.rand(1) > 0:
-        # loc = np.random.choice(np.arange(x.shape[-1] - 101), size=10, replace=False)
-    noise = (.1 ** .5) * torch.randn_like(x)
-    x += noise
-    return x
 
 
 def train(model, tloader, optimizer, lfn, **kwargs):
@@ -192,33 +186,3 @@ if __name__ == '__main__':
 
     with open(f'{accelerator.project_dir}/config.json', 'w+') as jout:
         json.dump(config, jout)
-
-# model = resnet18()
-
-
-class Head(nn.Module):
-    def __init__(self, out_features=128, num_layers=64):
-        super().__init__()
-        self.lstm = nn.LSTM(300, hidden_size=out_features, num_layers=num_layers, batch_first=True)
-        self.fc = nn.Linear(out_features, 5)
-        self.proj = nn.Linear(2, 1)
-
-    def forward(self, x):
-        x0, _ = self.lstm(x)
-        x0 = self.proj(torch.permute(x0, (0, 2, 1))).squeeze(-1)
-        # print(x0.shape)
-        return self.fc(x0)
-
-
-class HIB(nn.Module):
-    def __init__(self, backbone):
-        super().__init__()
-        self.backbone = backbone
-        self.head = Head()
-
-    def forward(self, x):
-        # xf = ic(self.backbone(x))
-        xf = self.backbone(x)
-        # y = ic(self.head(xf))
-        y = self.head(xf)
-        return y

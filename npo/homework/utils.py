@@ -17,6 +17,28 @@ FULL_CATEGORIES = [
     'F', 'R', '[', 'f', 'J', 'a', 'E', 'N', 'x', 'e', 'S', '"', ']', 'A', 'j', '+', 'Q', '|', 'L', '/', 'V', '~', '!'
 ]
 
+NAME_TABLE = {
+    'N': 'Normal beat',
+    'L': 'Left bundle branch block beat',
+    'R': 'Right bundle branch block beat',
+    'A': 'Atrial premature beat',
+    'a': 'Aberrated atrial premature beat',
+    'J': 'Nodal (junctional) premature beat',
+    'S': 'Supraventricular premature beat',
+    'V': 'Premature ventricular contraction',
+    'F': 'Fusion of ventricular and normal beat',
+    '[': 'Start of ventricular flutter',
+    '!': 'Ventricular flutter wave',
+    ']': 'End of ventricular flutter',
+    'e': 'Atrial escape beat',
+    'j': 'Nodal (junctional) escape beat',
+    'E': 'Ventricular escape beat',
+    '/': 'Paced beat',
+    'f': 'Fusion of paced and normal beat',
+    'x': 'Non-conducted P-wave (blocked APB)',
+    'Q': 'Unclassifiable beat',
+    '|': 'Isolated QRS-like artifact'
+}
 
 def _get_data_set(
         number, x_data, y_data, window=None,
@@ -91,11 +113,11 @@ def load_data(need_channels=False, need_weights=True, window=None, phase='train'
     if not need_weights:
         return train_x, train_y, test_x, test_y, final_nc
 
-    weights = []
+    weights = np.ones(23)
 
     for cidx in np.sort(np.unique(train_y)):
-        weights.append(len(train_y[train_y == cidx]))
-    weights = np.array(weights).astype(np.float32)
+        weights[cidx] = len(train_y[train_y == cidx])
+    weights = weights.astype(np.float32)
     weights /= weights.max()
     weights = np.divide(np.ones_like(weights), weights)
 
