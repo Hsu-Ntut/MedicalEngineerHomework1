@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import torch
 from torch.nn.functional import one_hot
 
-__all__ = ['load_data', 'FULL_CATEGORIES']
+__all__ = ['load_data', 'FULL_CATEGORIES', 'NAME_TABLE', 'WHOLE_NUMBER']
 
 
 WHOLE_NUMBER = ['100', '101', '103', '105', '106', '107', '108', '109', '111', '112', '113', '114', '115',
@@ -80,8 +80,6 @@ def _get_data_set(
     return
 
 
-# 加载数据集并进行预处理
-# @functools.cache
 def load_data(need_channels=False, need_weights=True, window=None, phase='train', **kwargs):
     window = [100, 200] if window is None else window
     total = sum(window)
