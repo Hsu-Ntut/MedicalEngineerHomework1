@@ -149,6 +149,7 @@ class ResNet(nn.Module):
     ) -> None:
         super().__init__()
         # _log_api_usage_once(self)
+        self.has_proj = proj
         if norm_layer is None:
             norm_layer = nn.BatchNorm1d
         self._norm_layer = norm_layer
@@ -244,6 +245,7 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x: Tensor) -> Tuple[Tensor]:
+
         # See note [TorchScript super()]
         x = self.conv1(x)
         # ic(x.shape)
@@ -255,14 +257,14 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         # print(x.shape, self.proj)
-        if self.proj is not None:
+        if self.has_proj:
             aux = self.proj(x)
         x = self.layer4(x)
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
-        if self.proj is not None:
+        if self.has_proj:
             return x, aux
         return x
 

@@ -82,6 +82,9 @@ def load_data(need_channels=False, need_weights=True, window=None, phase='train'
         _get_data_set(n, data_pack, label_pack, window=window, **kwargs)
     X = np.array(data_pack).reshape(x_shape)
     Y = np.array(label_pack).reshape((-1, 1))
+    if phase == 'test':
+        return X, Y
+
     train_x, test_x, train_y, test_y = tts(X, Y, test_size=.2)
     final_nc = len(np.unique(train_y))
 
