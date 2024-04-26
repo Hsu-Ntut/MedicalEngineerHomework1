@@ -58,18 +58,13 @@ def _get_data_set(
 
     amplitude = wfdb.rdrecord('./static/mit-bih-arrhythmia-database-1.0.0/' + number, channel_names=['MLII'])
     amplitude = amplitude.p_signal.flatten()
-    # 获取心电数据记录中R波的位置和对应的标签
     annotation = wfdb.rdann('./static/mit-bih-arrhythmia-database-1.0.0/' + number, 'atr')
     time_axis = annotation.sample
     wave_annotation = annotation.symbol
-    # 去掉前后的不稳定数据
     start = 10
     end = 5
     i = start
     j = len(annotation.symbol) - end
-    # 因为只选择NAVLR五种心电类型,所以要选出该条记录中所需要的那些带有特定标签的数据,舍弃其余标签的点
-    # X_data在R波前后截取长度为300的数据点
-    # Y_data将NAVLR按顺序转换为01234
     while i < j:
         label = 0
         if wave_annotation[i] in categories_names_list:
